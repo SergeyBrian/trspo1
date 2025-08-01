@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.26)
-project(monitor)
+project(monitor CXX ASM_MASM)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -10,6 +10,7 @@ set(injector_sources
     src/hook_manager.cpp
     src/injector.cpp
     src/hook.cpp
+    src/hook.asm
 )
 
 set(hook_sources

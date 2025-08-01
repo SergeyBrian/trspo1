@@ -20,14 +20,10 @@ HookPatch::HookPatch(const char *lib_name, const char *func_name,
 
     uint8_t data[] = {
         /*
-            0:  49 ba 00 00 00 00 00    movabs r10,0x0
-            7:  00 00 00
-            a:  41 52                   push   r10
-            c:  48 b8 00 00 00 00 00    movabs rax,0x0
-            13: 00 00 00
-            16: ff e0                   jmp    rax
+          0:  48 b8 00 00 00 00 00    movabs rax,0x0
+          7:  00 00 00
+          a:  ff e0                   jmp    rax
         */
-        0x49, 0xBA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x41, 0x52,
         0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xE0,
     };
 
@@ -35,8 +31,7 @@ HookPatch::HookPatch(const char *lib_name, const char *func_name,
                               PAGE_EXECUTE_READWRITE);
     memcpy(trampoline, reinterpret_cast<uint8_t *>(address), sizeof(data));
 
-    memcpy(data + 2, &trampoline, sizeof(trampoline));
-    memcpy(data + 0xa + 2, &hook_func, sizeof(hook_func));
+    memcpy(data + 2, &hook_func, sizeof(hook_func));
 
     memcpy(address, data, sizeof(data));
 
