@@ -2,6 +2,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <tlhelp32.h>
 
 #include <iostream>
 
@@ -25,15 +26,48 @@ std::string get_dll_full_path() {
 bool inject(const Config &config) {
     std::string dll_full_path = get_dll_full_path();
     std::cout << dll_full_path << "\n";
-    std::cout << "[*] Pid: " << config.pid << "\n";
+    int64_t pid = config.pid;
+
+    if (!config.pid) {
+        if (!strlen(config.process_name)) {
+            std::cout << "[!] Please specify pid or process name\n";
+            return 1;
+        }
+        WCHAR name[MAX_PATH];
+        size_t tmp;
+        mbstowcs_s(&tmp, name, config.process_name,
+                   strlen(config.process_name));
+        std::wcout << "[*] Name: " << name << "\n";
+
+        HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+        if (hSnapshot == INVALID_HANDLE_VALUE) {
+            std::cout << "[!] CreateToolhelp32Snapshot failed\n";
+            return 1;
+        }
+
+        PROCESSENTRY32W pe;
+        pe.dwSize = sizeof(PROCESSENTRY32W);
+        if (!Process32FirstW(hSnapshot, &pe)) {
+            std::cout << "[!] Process32FirstW failed\n";
+            return 1;
+        }
+        do {
+            if (_wcsicmp(pe.szExeFile, name) == 0) {
+                pid = pe.th32ProcessID;
+                break;
+            }
+        } while (Process32NextW(hSnapshot, &pe));
+        CloseHandle(hSnapshot);
+    }
+
+    std::cout << "[*] Pid: " << pid << "\n";
 
     HANDLE proc = OpenProcess(
         PROCESS_CREATE_THREAD | PROCESS_QUERY_INFORMATION |
             PROCESS_VM_OPERATION | PROCESS_VM_WRITE | PROCESS_VM_READ,
-        false, config.pid);
+        false, pid);
     if (!proc) {
-        std::cout << "[!] Failed to open proccess with pid " << config.pid
-                  << "\n";
+        std::cout << "[!] Failed to open proccess with pid " << pid << "\n";
         std::cout << GetLastError() << "\n";
         return 1;
     }
