@@ -5,6 +5,11 @@
 
 class HookPatch {
 public:
+    template <typename T>
+    T get_trampoline() {
+        return reinterpret_cast<T>(trampoline);
+    }
+
     HookPatch(void *target, void *hook);
     ~HookPatch();
 

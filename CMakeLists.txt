@@ -22,6 +22,7 @@ set(injector_sources
 set(hook_sources
     src/hook/manager/manager.cpp
     src/hook/patch/patch.cpp
+    src/hook/hooks/filter.cpp
     src/hook/dllmain.cpp
 )
 

@@ -4,8 +4,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-void HookManager::AddPatch(const std::string &lib_name,
-                           const std::string &func_name, void *hook_func) {
+void HookManager::add_patch(const std::string &lib_name,
+                            const std::string &func_name, void *hook_func) {
     HMODULE h = LoadLibraryA(lib_name.c_str());
     if (!h) {
         throw std::runtime_error("LoadLibraryA failed");
@@ -21,7 +21,7 @@ void HookManager::AddPatch(const std::string &lib_name,
         std::move(std::make_unique<HookPatch>(target, hook_func));
 }
 
-void HookManager::RemovePatch(std::string func_name) {
+void HookManager::remove_patch(const std::string &func_name) {
     patches.erase(func_name);
 }
 

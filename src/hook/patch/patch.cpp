@@ -97,4 +97,14 @@ void HookPatch::patch() {
     std::cout << "[+] Hook added\n";
 }
 
-void HookPatch::unpatch() {}
+void HookPatch::unpatch() {
+    DWORD tmp{};
+    VirtualProtect(reinterpret_cast<LPVOID>(target_ptr), 32,
+                   PAGE_EXECUTE_READWRITE, &tmp);
+
+    memcpy(target_ptr, old_bytes.data(), old_bytes.size());
+    VirtualFree(trampoline, 0, MEM_RELEASE);
+
+    VirtualProtect(reinterpret_cast<LPVOID>(target_ptr), 32, tmp, &tmp);
+    std::cout << "[+] Hook removed\n";
+}
