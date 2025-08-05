@@ -1,16 +1,23 @@
 #include <cstdio>
 #include <stdio.h>
+#include <iostream>
 
 #include <windows.h>
 
 int main() {
-    auto file = CreateFile("test.txt", GENERIC_WRITE, 0, nullptr, CREATE_NEW,
+    auto file = CreateFile("test.txt", GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
                            FILE_ATTRIBUTE_NORMAL, nullptr);
     const char data[] = "sdlfksdjflkdsjfldjk";
     DWORD dwBytesWritten = 0;
 
-    int bErrorFlag = WriteFile(file, data, sizeof(data), &dwBytesWritten, NULL);
     CloseHandle(file);
-    while (true);
+    system("pause");
+    file = CreateFileW(L"text.txt", GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
+                       FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (file == INVALID_HANDLE_VALUE) {
+        std::cout << "!!! Can't open file\n";
+    } else {
+        std::cout << "+++ Can open file\n";
+    }
     return 0;
 }

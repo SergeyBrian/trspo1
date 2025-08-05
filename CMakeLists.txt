@@ -23,17 +23,26 @@ set(hook_sources
     src/hook/manager/manager.cpp
     src/hook/patch/patch.cpp
     src/hook/hooks/filter.cpp
-    src/hook/hooks/logger.cpp
+    src/hook/hooks/logger.cpp 
     src/hook/hooks/common.asm
-    src/hook/dllmain.cpp
 )
 
 add_executable(${CMAKE_PROJECT_NAME} ${injector_sources} src/main.cpp)
-add_executable(test ${injector_sources} test/test.cpp)
+add_executable(test test/test.cpp)
 add_executable(patch_test ${hook_sources} test/patch_test.cpp)
-add_library(hook SHARED ${hook_sources})
+add_library(hook SHARED ${hook_sources} src/hook/hooks/tcp_logger.cpp src/hook/dllmain.cpp)
 
-target_link_libraries(hook PRIVATE capstone)
+add_library(net_tcp
+    src/common/internal/tcp_win.cpp
+)
+
+if (WIN32)
+    target_link_libraries(net_tcp PUBLIC ws2_32)
+endif()
+
+target_link_libraries(monitor PRIVATE net_tcp)
+target_link_libraries(hook PRIVATE capstone net_tcp)
+
 target_link_libraries(patch_test PRIVATE capstone)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)

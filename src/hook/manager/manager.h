@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <string>
 #include <memory>
+#include <iostream>
 
 class HookManager {
 public:
@@ -17,8 +18,11 @@ public:
     template <typename T>
     T get_trampoline(const std::string &func_name) {
         if (patches.contains(func_name)) {
+            std::cout << "[+] Found trampoline (" << func_name << ")\n";
             return patches.at(func_name)->get_trampoline<T>();
         }
+
+        std::cout << "[!] Not found (" << func_name << ")\n";
 
         patches[func_name] = std::make_unique<HookPatch>();
 

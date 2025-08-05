@@ -17,7 +17,7 @@ int main(int argc, char **argv) {
     for (int i = 1; i < argc; i++) {
         switch (cur_arg) {
             case Arg::Unknown:
-                if (i > 1) {
+                if (!(i % 2)) {
                     std::cout << "[!] Unknown arg '" << argv[i] << "'\n";
                     return 1;
                 }

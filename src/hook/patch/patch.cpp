@@ -57,11 +57,12 @@ void HookPatch::patch() {
 
     uint8_t data[] = {
         /*
-            0:  48 b8 00 00 00 00 00    movabs rax,0x0
+            0:  49 ba 00 00 00 00 00    movabs r10,0x0
             7:  00 00 00
-            a:  ff e0                   jmp    rax
+            a:  41 ff e2                jmp    r10
         */
-        0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xE0,
+        0x49, 0xBA, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x41, 0xFF, 0xE2,
     };
 
     patch_size = adjust_patch_size(sizeof(data));

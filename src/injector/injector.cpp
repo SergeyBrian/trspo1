@@ -6,6 +6,9 @@
 
 #include <iostream>
 
+#include "common/include/tcp.h"
+#include "common/include/proto.h"
+
 static const char *dll_name = "hook";
 
 namespace injector {
@@ -68,7 +71,6 @@ bool inject(const Config &config) {
         false, pid);
     if (!proc) {
         std::cout << "[!] Failed to open proccess with pid " << pid << "\n";
-        std::cout << GetLastError() << "\n";
         return 1;
     }
 
@@ -101,7 +103,45 @@ bool inject(const Config &config) {
         return 1;
     }
 
-    std::cout << "Success\n";
+    auto listener = net::TcpListener::bind("127.0.0.1", "6969");
+    if (!listener) {
+        std::cout << "[!] Failed to bind to tcp socket\n";
+        return 1;
+    }
+
+    auto stream = listener->accept();
+    if (!stream) {
+        std::cout << "[!] Accept failed\n";
+        return 1;
+    }
+    std::cout << "[+] Successfully connected\n";
+
+    proto::Mode mode{};
+    std::string s{};
+
+    if (config.hide_file_name) {
+        mode = proto::Mode::Filter;
+        s = config.hide_file_name;
+    } else {
+        mode = proto::Mode::Log;
+        s = config.func_name;
+    }
+
+    auto cfg = proto::Config{mode, s};
+
+    proto::send_config(stream.get(), cfg);
+
+    while (true) {
+        auto log = proto::recv_log(stream.get());
+        if (!log) {
+            std::cout << "[*] Connection closed!\n";
+            break;
+        }
+        std::cout << "[+] Msg: " << *log << "\n";
+    }
+
+    stream->close();
+    listener->close();
 
     WaitForSingleObject(thread, INFINITE);
 

@@ -11,6 +11,9 @@ void SetHideStrig(const std::string &filter);
 void *CreateFileA();
 void *FindNextFileA();
 void *FindFirstFileA();
+void *CreateFileW();
+void *FindNextFileW();
+void *FindFirstFileW();
 }  // namespace hooks::filter
 
 #endif
