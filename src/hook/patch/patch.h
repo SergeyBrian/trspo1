@@ -9,7 +9,9 @@ public:
     T get_trampoline() {
         return reinterpret_cast<T>(trampoline);
     }
+    void setup(void *target, void *hook);
 
+    HookPatch();
     HookPatch(void *target, void *hook);
     ~HookPatch();
 

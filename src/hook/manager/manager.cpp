@@ -17,8 +17,12 @@ void HookManager::add_patch(const std::string &lib_name,
         throw std::runtime_error("GetProcAddress failed");
     }
 
-    patches[func_name] =
-        std::move(std::make_unique<HookPatch>(target, hook_func));
+    if (patches.contains(func_name)) {
+        patches.at(func_name)->setup(target, hook_func);
+    } else {
+        patches[func_name] =
+            std::move(std::make_unique<HookPatch>(target, hook_func));
+    }
 }
 
 void HookManager::remove_patch(const std::string &func_name) {

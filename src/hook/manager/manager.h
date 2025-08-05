@@ -3,7 +3,6 @@
 
 #include "hook/patch/patch.h"
 
-#include <stdexcept>
 #include <unordered_map>
 #include <string>
 #include <memory>
@@ -17,8 +16,11 @@ public:
 
     template <typename T>
     T get_trampoline(const std::string &func_name) {
-        if (!patches.contains(func_name))
-            throw std::runtime_error("patch not found");
+        if (patches.contains(func_name)) {
+            return patches.at(func_name)->get_trampoline<T>();
+        }
+
+        patches[func_name] = std::make_unique<HookPatch>();
 
         return patches.at(func_name)->get_trampoline<T>();
     }

@@ -23,6 +23,8 @@ set(hook_sources
     src/hook/manager/manager.cpp
     src/hook/patch/patch.cpp
     src/hook/hooks/filter.cpp
+    src/hook/hooks/logger.cpp
+    src/hook/hooks/common.asm
     src/hook/dllmain.cpp
 )
 
