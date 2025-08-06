@@ -1,5 +1,6 @@
 #include "patch.h"
 #include <stdexcept>
+#include "hook/manager/manager.h"
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -9,6 +10,11 @@
 #include <iostream>
 
 void *unstub(void *ptr);
+
+extern "C" {
+void common_hook();
+void hook_end();
+}
 
 HookPatch::HookPatch(void *target, void *hook) : HookPatch() {
     setup(target, hook);
@@ -59,69 +65,104 @@ void HookPatch::patch() {
         /*
             0:  49 ba 00 00 00 00 00    movabs r10,0x0
             7:  00 00 00
+            a:  49 bb 00 00 00 00 00    movabs r11,0x0
+            11: 00 00 00
+            14: 48 b8 00 00 00 00 00    movabs rax,0x0
+            1b: 00 00 00
+            1e: 68 00 00 00 00          push   0x0
+            23: 41 ff e2                jmp    r10
+        */
+        0x49, 0xBA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x49, 0xBB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x68, 0x00, 0x00, 0x00, 0x00, 0x41, 0xFF, 0xE2,
+    };
+
+    uint8_t simple_jmp[] = {
+        /*
+            0:  49 ba 00 00 00 00 00    movabs r10,0x0
+            7:  00 00 00
             a:  41 ff e2                jmp    r10
         */
         0x49, 0xBA, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x41, 0xFF, 0xE2,
     };
 
+    uint8_t post_trampoline[] = {
+        /*
+            0:  49 c7 c3 00 00 00 00    mov    r11,0x0
+            7:  49 ba 00 00 00 00 00    movabs r10,0x0
+            e:  00 00 00
+            11: 41 ff d2                call   r10
+        */
+        0x49, 0xC7, 0xC3, 0x00, 0x00, 0x00, 0x00, 0x49, 0xBA, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x41, 0xFF, 0xD2,
+    };
+
     patch_size = adjust_patch_size(sizeof(data));
-    if (patch_size < sizeof(data)) {
+    if (patch_size < sizeof(simple_jmp)) {
         throw std::runtime_error("patch failed: not enough space");
     }
-    std::cout << "[*] patch_size = " << patch_size << "\n";
 
+    auto idx = HookManager::Instance()->get_tls_idx();
+
+    // setup post hook
+    auto addr = reinterpret_cast<uint64_t>(&hook_end);
+    memcpy(post_trampoline + 0x7 + 2, &addr, sizeof(addr));
+    memcpy(post_trampoline + 3, &idx, sizeof(idx));
+    memcpy(trampoline, post_trampoline, sizeof(post_trampoline));
+    void *tramp_code =
+        reinterpret_cast<uint8_t *>(trampoline) + sizeof(post_trampoline);
+
+    // SAVE OLD BYTES
     old_bytes.resize(patch_size);
     memcpy(old_bytes.data(), reinterpret_cast<uint8_t *>(target_ptr),
            patch_size);
 
-    memcpy(trampoline, old_bytes.data(), old_bytes.size());
+    // MOVE OLD BYTES TO TRAMPOLINE
+    memcpy(tramp_code, old_bytes.data(), old_bytes.size());
 
-    std::cout << "Trampoline:\n";
-    std::cout << std::hex;
-    for (int i = 0; i < sizeof(data) + patch_size; i++) {
-        std::cout << "0x"
-                  << static_cast<uint64_t>(
-                         *(static_cast<uint8_t *>(trampoline) + i))
-                  << " ";
-    }
-    std::cout << "\n" << std::dec;
+    // (simple) JMP BACK TO AFTER OLD BYTES
+    addr = reinterpret_cast<uint64_t>(reinterpret_cast<uint8_t *>(target_ptr) +
+                                      patch_size);
 
-    std::cout << std::hex
-              << "target_ptr=" << reinterpret_cast<uint64_t>(target_ptr)
-              << "\n";
-    auto addr = reinterpret_cast<uint64_t>(
-        reinterpret_cast<uint8_t *>(target_ptr) + patch_size);
-    std::cout << "offset_ptr=" << addr << std::dec << "\n";
+    // r10
+    memcpy(simple_jmp + 2, &addr, sizeof(addr));
+    memcpy(reinterpret_cast<uint8_t *>(tramp_code) + patch_size, simple_jmp,
+           sizeof(simple_jmp));
+
+    // ==== TRAMPOLINE SETUP DONE ====
+
+    // SETUP JMP TO common_hook (r10)
+    addr = reinterpret_cast<uint64_t>(&common_hook);
     memcpy(data + 2, &addr, sizeof(addr));
-    memcpy(reinterpret_cast<uint8_t *>(trampoline) + patch_size, data,
-           sizeof(data));
 
-    std::cout << "Trampoline:\n";
-    std::cout << std::hex;
-    for (int i = 0; i < sizeof(data) + patch_size; i++) {
-        std::cout << "0x"
-                  << static_cast<uint64_t>(
-                         *(static_cast<uint8_t *>(trampoline) + i))
-                  << " ";
-    }
-    std::cout << "\n" << std::dec;
-
-    std::cout << "Old bytes:\n" << std::hex;
-    for (const auto &c : old_bytes) {
-        std::cout << "0x" << static_cast<uint64_t>(c) << " ";
-    }
-    std::cout << "\n" << std::dec;
-
+    // SETUP main hook (r11)
     addr = reinterpret_cast<uint64_t>(hook_ptr);
-    std::cout << "hook_ptr addr: " << std::hex << addr << std::dec << "("
-              << sizeof(addr) << ")\n";
-    memcpy(data + 2, &addr, sizeof(addr));
-    memcpy(target_ptr, data, sizeof(data));
+    memcpy(data + 0xa + 2, &addr, sizeof(addr));
+
+    // SETUP trampoline addr (rax)
+    addr = reinterpret_cast<uint64_t>(trampoline);
+    memcpy(data + 0x14 + 2, &addr, sizeof(addr));
+
+    // SETUP tls idx (push)
+    memcpy(data + 0x1e + 1, &idx, sizeof(idx));
+
+    void *pre_trampoline = reinterpret_cast<uint8_t *>(tramp_code) +
+                           sizeof(simple_jmp) + patch_size;
+
+    memcpy(pre_trampoline, data, sizeof(data));
+
+    // ==== SECOND TRAMPOLINE SETUP DONE ====
+
+    addr = reinterpret_cast<uint64_t>(pre_trampoline);
+    memcpy(simple_jmp + 2, &addr, sizeof(addr));
+    memcpy(target_ptr, simple_jmp, sizeof(simple_jmp));
 
     VirtualProtect(reinterpret_cast<LPVOID>(target_ptr), 32, tmp, &tmp);
     VirtualProtect(reinterpret_cast<LPVOID>(trampoline), 1024,
                    PAGE_EXECUTE_READ, &tmp);
+    std::cout << "[+] patch() done.\n";
 }
 
 void HookPatch::unpatch() {

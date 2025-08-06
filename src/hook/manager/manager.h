@@ -3,6 +3,9 @@
 
 #include "hook/patch/patch.h"
 
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
 #include <unordered_map>
 #include <string>
 #include <memory>
@@ -29,12 +32,16 @@ public:
         return patches.at(func_name)->get_trampoline<T>();
     }
 
+    DWORD get_tls_idx() { return tls_idx; }
+
     HookManager(const HookManager &) = delete;
     HookManager &operator=(const HookManager &) = delete;
 
 private:
-    HookManager() = default;
+    HookManager();
     std::unordered_map<std::string, std::unique_ptr<HookPatch>> patches;
+
+    DWORD tls_idx;
 };
 
 #endif

@@ -1,20 +1,12 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include <iostream>
-
 #include "common/include/tcp.h"
 #include "common/include/proto.h"
 
 #include "hook/manager/manager.h"
 #include "hook/hooks/tcp_logger.h"
 #include "hook/hooks/filter.h"
-
-void OpenConsole() {
-    AllocConsole();
-    freopen_s((FILE **)stdout, "CONOUT$", "w", stdout);
-    std::cout << "Hello" << std::endl;
-}
 
 DWORD WINAPI Main(LPVOID) {
     auto mngr = HookManager::Instance();
@@ -31,18 +23,18 @@ DWORD WINAPI Main(LPVOID) {
     switch (cfg->mode) {
         case proto::Mode::Filter:
             hooks::filter::SetHideStrig(cfg->name);
-            /*mngr->add_patch("kernel32.dll", "CreateFileA",*/
-            /*                hooks::filter::CreateFileA());*/
-            /*mngr->add_patch("kernel32.dll", "FindNextFileA",*/
-            /*                hooks::filter::FindNextFileA());*/
-            /*mngr->add_patch("kernel32.dll", "FindFirstFileA",*/
-            /*                hooks::filter::FindFirstFileA());*/
+            mngr->add_patch("kernel32.dll", "CreateFileA",
+                            hooks::filter::CreateFileA());
+            mngr->add_patch("kernel32.dll", "FindNextFileA",
+                            hooks::filter::FindNextFileA());
+            mngr->add_patch("kernel32.dll", "FindFirstFileA",
+                            hooks::filter::FindFirstFileA());
             mngr->add_patch("kernel32.dll", "CreateFileW",
                             hooks::filter::CreateFileW());
-            /*mngr->add_patch("kernel32.dll", "FindNextFileW",*/
-            /*                hooks::filter::FindNextFileW());*/
-            /*mngr->add_patch("kernel32.dll", "FindFirstFileW",*/
-            /*                hooks::filter::FindFirstFileW());*/
+            mngr->add_patch("kernel32.dll", "FindNextFileW",
+                            hooks::filter::FindNextFileW());
+            mngr->add_patch("kernel32.dll", "FindFirstFileW",
+                            hooks::filter::FindFirstFileW());
             break;
         case proto::Mode::Log:
             mngr->add_patch(
@@ -59,7 +51,6 @@ DWORD WINAPI Main(LPVOID) {
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call,
                       LPVOID lpReserved) {
     if (ul_reason_for_call == DLL_PROCESS_ATTACH) {
-        OpenConsole();
         CreateThread(NULL, 0, Main, NULL, 0, NULL);
     }
     return TRUE;

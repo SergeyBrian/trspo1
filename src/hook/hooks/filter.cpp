@@ -1,5 +1,7 @@
 #include "filter.h"
+
 #include <iostream>
+
 #include "hook/manager/manager.h"
 
 namespace hooks::filter {
@@ -8,14 +10,26 @@ static std::string hidden_str;
 bool is_allowed(const char *s) {
     if (hidden_str.empty()) return true;
 
-    return strcmp(s, hidden_str.c_str());
+    char hidden[MAX_PATH]{};
+    char requested[MAX_PATH]{};
+
+    GetFullPathNameA(hidden_str.c_str(), MAX_PATH, hidden, nullptr);
+    GetFullPathNameA(s, MAX_PATH, requested, nullptr);
+
+    return strcmp(hidden, requested);
 }
 
 bool is_wallowed(const wchar_t *s) {
     if (hidden_str.empty()) return true;
 
-    return wcscmp(s,
-                  std::wstring(hidden_str.begin(), hidden_str.end()).c_str());
+    wchar_t hidden[MAX_PATH]{};
+    wchar_t requested[MAX_PATH]{};
+
+    GetFullPathNameW(std::wstring(hidden_str.begin(), hidden_str.end()).c_str(),
+                     MAX_PATH, hidden, nullptr);
+    GetFullPathNameW(s, MAX_PATH, requested, nullptr);
+
+    return wcscmp(hidden, requested);
 }
 
 HANDLE
@@ -31,6 +45,7 @@ filter_CreateFileA(_In_ LPCSTR lpFileName, _In_ DWORD dwDesiredAccess,
     std::cout << "[*] filter_CreateFileA end. ";
     if (!is_allowed(lpFileName)) {
         std::cout << "block\n";
+        SetLastError(ERROR_FILE_NOT_FOUND);
         return INVALID_HANDLE_VALUE;
     }
     std::cout << "allow\n";
@@ -42,38 +57,41 @@ filter_CreateFileA(_In_ LPCSTR lpFileName, _In_ DWORD dwDesiredAccess,
 
 BOOL WINAPI filter_FindNextFileA(_In_ HANDLE hFindFile,
                                  _Out_ LPWIN32_FIND_DATAA lpFindFileData) {
-    std::cout << "[*] filter_FindNextFileA begin\n";
+    std::cout << "[*] filter_FindNextFileA begin (" << lpFindFileData->cFileName
+              << ")\n";
     auto orig =
         HookManager::Instance()
             ->get_trampoline<decltype(&filter_FindNextFileA)>("FindNextFileA");
     bool res{};
-    do {
-        res = orig(hFindFile, lpFindFileData);
-    } while (res && (res = is_allowed(lpFindFileData->cFileName)));
+    std::cout << "[*] filter_CreateFileA end. ";
 
-    std::cout << "[*] filter_FindNextFileA end. " << (res ? "allow" : "block")
-              << "\n";
-
-    return res;
+    if (!is_allowed(lpFindFileData->cFileName)) {
+        std::cout << "block\n";
+        return false;
+    }
+    std::cout << "allow\n";
+    return orig(hFindFile, lpFindFileData);
 }
 
 HANDLE
 WINAPI
 filter_FindFirstFileA(_In_ LPCSTR lpFileName,
                       _Out_ LPWIN32_FIND_DATAA lpFindFileData) {
-    std::cout << "[*] filter_FindFirstFileA begin\n";
+    std::cout << "[*] filter_FindFirstFileA begin (" << lpFileName << ")\n";
     auto orig = HookManager::Instance()
                     ->get_trampoline<decltype(&filter_FindFirstFileA)>(
                         "FindFirstFileA");
     std::cout << "[*] filter_CreateFileA end. ";
     if (!is_allowed(lpFileName)) {
         std::cout << "block\n";
+        SetLastError(ERROR_FILE_NOT_FOUND);
         return INVALID_HANDLE_VALUE;
     }
 
     HANDLE res = orig(lpFileName, lpFindFileData);
     if (!is_allowed(lpFindFileData->cFileName)) {
         std::cout << "block\n";
+        SetLastError(ERROR_FILE_NOT_FOUND);
         return INVALID_HANDLE_VALUE;
     }
     std::cout << "allow\n";
@@ -94,6 +112,7 @@ filter_CreateFileW(_In_ LPCWSTR lpFileName, _In_ DWORD dwDesiredAccess,
     std::cout << "[*] filter_CreateFileW end. ";
     if (!is_wallowed(lpFileName)) {
         std::cout << "block\n";
+        SetLastError(ERROR_FILE_NOT_FOUND);
         return INVALID_HANDLE_VALUE;
     }
     std::cout << "allow\n";
@@ -104,39 +123,42 @@ filter_CreateFileW(_In_ LPCWSTR lpFileName, _In_ DWORD dwDesiredAccess,
 }
 
 BOOL WINAPI filter_FindNextFileW(_In_ HANDLE hFindFile,
-                                 _Out_ LPWIN32_FIND_DATAA lpFindFileData) {
-    std::cout << "[*] filter_FindNextFileW begin\n";
+                                 _Out_ LPWIN32_FIND_DATAW lpFindFileData) {
+    std::wcout << "[*] filter_FindNextFileW begin ("
+               << lpFindFileData->cFileName << ")\n";
     auto orig =
         HookManager::Instance()
             ->get_trampoline<decltype(&filter_FindNextFileW)>("FindNextFileW");
     bool res{};
-    do {
-        res = orig(hFindFile, lpFindFileData);
-    } while (res && (res = is_allowed(lpFindFileData->cFileName)));
+    std::cout << "[*] filter_CreateFileW end. ";
 
-    std::cout << "[*] filter_FindNextFileW end. " << (res ? "allow" : "block")
-              << "\n";
-
-    return res;
+    if (!is_wallowed(lpFindFileData->cFileName)) {
+        std::cout << "block\n";
+        return false;
+    }
+    std::cout << "allow\n";
+    return orig(hFindFile, lpFindFileData);
 }
 
 HANDLE
 WINAPI
 filter_FindFirstFileW(_In_ LPCSTR lpFileName,
                       _Out_ LPWIN32_FIND_DATAA lpFindFileData) {
-    std::cout << "[*] filter_FindFirstFileW begin\n";
+    std::cout << "[*] filter_FindFirstFileW begin (" << lpFileName << ")\n";
     auto orig = HookManager::Instance()
                     ->get_trampoline<decltype(&filter_FindFirstFileW)>(
                         "FindFirstFileW");
     std::cout << "[*] filter_CreateFileW end. ";
     if (!is_allowed(lpFileName)) {
         std::cout << "block\n";
+        SetLastError(ERROR_FILE_NOT_FOUND);
         return INVALID_HANDLE_VALUE;
     }
 
     HANDLE res = orig(lpFileName, lpFindFileData);
     if (!is_allowed(lpFindFileData->cFileName)) {
         std::cout << "block\n";
+        SetLastError(ERROR_FILE_NOT_FOUND);
         return INVALID_HANDLE_VALUE;
     }
     std::cout << "allow\n";

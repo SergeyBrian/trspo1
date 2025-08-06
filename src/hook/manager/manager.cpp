@@ -34,3 +34,8 @@ HookManager *HookManager::Instance() {
 
     return &instance;
 }
+
+HookManager::HookManager() {
+    tls_idx = TlsAlloc();
+    TlsSetValue(tls_idx, 0);
+}

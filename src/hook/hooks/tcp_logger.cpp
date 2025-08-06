@@ -18,7 +18,7 @@ struct LoggerInfo {
 
 extern "C" {
 static void logger_call(LoggerInfo *l) {
-    char line[MAX_PATH]{};
+    char line[MAX_PATH * 2]{};
     std::sprintf(line, "Call to %s detected!", l->func_name);
     proto::send_log(l->s, line);
 }

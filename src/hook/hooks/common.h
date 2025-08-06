@@ -8,8 +8,6 @@
 #include <cstring>
 #include <cstdint>
 
-extern "C" void common_hook();
-
 namespace hooks::common {
 template <typename T>
 void *make_hook(const char *func_name, T info, void (*handler)(T *)) {
@@ -94,8 +92,6 @@ void *make_hook(const char *func_name, T info, void (*handler)(T *)) {
     std::memcpy(data + 0x2e + 2, &addr, sizeof(addr));
     addr = reinterpret_cast<uint64_t>(handler);
     std::memcpy(data + 0x38 + 2, &addr, sizeof(addr));
-    addr = reinterpret_cast<uint64_t>(&common_hook);
-    std::memcpy(data + 0x42 + 2, &addr, sizeof(addr));
 
     std::memcpy(buf, data, sizeof(data));
     buf = reinterpret_cast<uint8_t *>(buf) + sizeof(data);
