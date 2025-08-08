@@ -1,9 +1,12 @@
 #include "patch.h"
 #include <stdexcept>
+
 #include "hook/manager/manager.h"
 
+#ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#endif
 
 #include <capstone/capstone.h>
 

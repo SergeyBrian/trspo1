@@ -1,6 +1,7 @@
 #ifndef H_HOOK_PATCH_H
 #define H_HOOK_PATCH_H
 
+#include <cstdint>
 #include <vector>
 
 class HookPatch {

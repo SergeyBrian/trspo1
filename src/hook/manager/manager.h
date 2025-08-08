@@ -3,8 +3,15 @@
 
 #include "hook/patch/patch.h"
 
+#ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+using TlsKey = DWORD;
+#else
+#include <pthread.h>
+
+using TlsKey = pthread_key_t;
+#endif
 
 #include <unordered_map>
 #include <string>
@@ -32,7 +39,7 @@ public:
         return patches.at(func_name)->get_trampoline<T>();
     }
 
-    DWORD get_tls_idx() { return tls_idx; }
+    TlsKey get_tls_idx() { return tls_idx; }
 
     HookManager(const HookManager &) = delete;
     HookManager &operator=(const HookManager &) = delete;
@@ -41,7 +48,7 @@ private:
     HookManager();
     std::unordered_map<std::string, std::unique_ptr<HookPatch>> patches;
 
-    DWORD tls_idx;
+    TlsKey tls_idx;
 };
 
 #endif

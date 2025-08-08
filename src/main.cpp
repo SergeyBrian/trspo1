@@ -1,3 +1,5 @@
+#include <cstring>
+#include <cstdint>
 #include <iostream>
 
 #include "injector/injector.hpp"
@@ -13,6 +15,13 @@ enum class Arg : uint8_t {
 int main(int argc, char **argv) {
     injector::Config config{};
     Arg cur_arg{};
+
+    if (argc <= 1) {
+        std::cout << "[!] Not enough arguments.\n";
+        std::cout << "Usage: " << argv[0]
+                  << " {-name | -pid} {-func | -hide}\n";
+        exit(1);
+    }
 
     for (int i = 1; i < argc; i++) {
         switch (cur_arg) {
