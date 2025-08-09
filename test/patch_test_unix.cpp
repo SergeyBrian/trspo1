@@ -13,7 +13,7 @@ int main() {
 
     hooks::filter::SetHideStrig("test.txt");
 
-    mngr->add_patch("libc.so.6", "fopen", hooks::filter::fopen());
+    mngr->add_patch("libc.so.6", "fopen", hooks::logger::Logger("fopen"));
 
     FILE *f = fopen("test.txt", "w");
 

@@ -3,6 +3,7 @@
 
 #include <sys/mman.h>
 #include <unistd.h>
+#include "common/include/io.h"
 #include "hook/manager/manager.h"
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -12,9 +13,14 @@
 #include <cstring>
 #include <cstdint>
 
+struct TcpLoggerInfo {
+    char func_name[260]{};
+    io::IStream *s;
+};
+
 namespace hooks::common {
 template <typename T>
-void *make_hook(const char *func_name, T info, void (*handler)(T *)) {
+void *make_hook(const char *func_name, const T &info, void (*handler)(T *)) {
     uint8_t data[] = {
         /*
             0:  50                      push   rax
@@ -37,7 +43,10 @@ void *make_hook(const char *func_name, T info, void (*handler)(T *)) {
             1f: 0f 11 4c 24 10          movups XMMWORD PTR [rsp+0x10],xmm1
             24: 0f 11 54 24 20          movups XMMWORD PTR [rsp+0x20],xmm2
             29: 0f 11 5c 24 30          movups XMMWORD PTR [rsp+0x30],xmm3
+            // WIN
             2e: 48 b9 00 00 00 00 00    movabs rcx,0x0
+            // UNIX
+            2e: 48 bf 00 00 00 00 00    movabs rdi,0x0
             35: 00 00 00
             38: 48 ba 00 00 00 00 00    movabs rdx,0x0
             3f: 00 00 00
@@ -73,7 +82,12 @@ void *make_hook(const char *func_name, T info, void (*handler)(T *)) {
         0x50, 0x51, 0x52, 0x53, 0x55, 0x56, 0x57, 0x41, 0x50, 0x41, 0x51, 0x41,
         0x52, 0x41, 0x53, 0x41, 0x54, 0x41, 0x55, 0x41, 0x56, 0x41, 0x57, 0x48,
         0x83, 0xEC, 0x40, 0x0F, 0x11, 0x04, 0x24, 0x0F, 0x11, 0x4C, 0x24, 0x10,
-        0x0F, 0x11, 0x54, 0x24, 0x20, 0x0F, 0x11, 0x5C, 0x24, 0x30, 0x48, 0xB9,
+        0x0F, 0x11, 0x54, 0x24, 0x20, 0x0F, 0x11, 0x5C, 0x24, 0x30, 0x48,
+#ifdef _WIN32
+        0xB9,
+#else
+        0xBF,
+#endif
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x48, 0xBA, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x48, 0xB8, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x49, 0x89, 0xE4, 0x49, 0x83, 0xE4, 0x0F, 0x4C,
@@ -103,6 +117,7 @@ void *make_hook(const char *func_name, T info, void (*handler)(T *)) {
     std::memcpy(meta, &info, sizeof(info));
 
     auto addr = reinterpret_cast<uint64_t>(meta);
+    std::cout << "meta: " << std::hex << addr << std::dec << "\n";
     std::memcpy(data + 0x2e + 2, &addr, sizeof(addr));
     addr = reinterpret_cast<uint64_t>(handler);
     std::memcpy(data + 0x38 + 2, &addr, sizeof(addr));

@@ -7,11 +7,10 @@
 
 #include <iostream>
 
-namespace {
+namespace hooks::logger {
 struct LoggerInfo {
     char func_name[MAX_PATH]{};
 };
-}  // namespace
 
 extern "C" {
 static void logger_call(LoggerInfo *l) {
@@ -22,12 +21,10 @@ static void logger_call(LoggerInfo *l) {
                   NULL);
 }
 }
-
-namespace hooks::logger {
 void *Logger(const char *func_name) {
     std::cout << "[*] Constructing Logger('" << func_name << "')\n";
 
-    ::LoggerInfo info{};
+    LoggerInfo info{};
 
     std::memcpy(info.func_name, func_name, min(MAX_PATH, strlen(func_name)));
 

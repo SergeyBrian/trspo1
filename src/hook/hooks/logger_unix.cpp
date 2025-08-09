@@ -6,11 +6,10 @@
 
 #include "hook/hooks/common.h"
 
-namespace {
+namespace hooks::logger {
 struct LoggerInfo {
     char func_name[PATH_MAX]{};
 };
-}  // namespace
 
 extern "C" {
 static void logger_call(LoggerInfo *l) {
@@ -19,17 +18,16 @@ static void logger_call(LoggerInfo *l) {
     puts(line);
 }
 }
-
-namespace hooks::logger {
 void *Logger(const char *func_name) {
     std::cout << "[*] Constructing Logger('" << func_name << "')\n";
 
-    ::LoggerInfo info{};
+    ::hooks::logger::LoggerInfo info{};
 
     std::memcpy(info.func_name, func_name,
                 std::min(PATH_MAX, int(strlen(func_name))));
 
-    void *buf = common::make_hook(func_name, info, &logger_call);
+    void *buf =
+        common::make_hook(func_name, info, &::hooks::logger::logger_call);
 
     std::cout << "[+] Done Logger('" << func_name << "')\n";
     return buf;

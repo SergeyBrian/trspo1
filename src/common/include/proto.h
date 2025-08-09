@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <iostream>
 
 #include "io.h"
 
@@ -24,9 +25,7 @@ struct Config {
 };
 
 inline constexpr std::uint32_t MAX_STR = 260;
-inline bool write_u8(io::IStream *s, std::uint8_t v) {
-    return s->write(&v, 1);
-}
+inline bool write_u8(io::IStream *s, std::uint8_t v) { return s->write(&v, 1); }
 inline bool read_u8(io::IStream *s, std::uint8_t &v) { return s->read(&v, 1); }
 inline bool write_u32_be(io::IStream *s, std::uint32_t v) {
     std::uint8_t buf[4]{static_cast<std::uint8_t>((v >> 24) & 0xFF),
@@ -77,6 +76,8 @@ inline std::optional<Config> recv_config(io::IStream *s) {
 }
 
 inline bool send_log(io::IStream *s, std::string_view msg) {
+    std::cout << "[*] Sending log into 0x" << std::hex
+              << reinterpret_cast<uint64_t>(s) << "\n";
     return write_u8(s, static_cast<std::uint8_t>(MsgType::Log)) &&
            write_string(s, msg);
 }

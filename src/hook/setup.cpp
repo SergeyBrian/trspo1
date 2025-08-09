@@ -10,12 +10,7 @@
 void setup() {
     std::cout << "[+] setup()\n";
     auto mngr = HookManager::Instance();
-    std::unique_ptr<net::TcpStream> stream;
-    for (int i = 0; i < 10; i++) {
-        stream = net::TcpStream::connect("127.0.0.1", "6969");
-        if (stream) break;
-        sleep(1);
-    }
+    auto stream = net::TcpStream::connect("127.0.0.1", "6969");
     if (!stream) {
         std::cout << "[!] tcp connect failed\n";
         return;
