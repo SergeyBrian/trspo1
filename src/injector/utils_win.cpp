@@ -10,10 +10,10 @@
 
 uint64_t get_pid_by_name(const char *name) {
     uint64_t pid{};
-    WCHAR name[MAX_PATH];
+    WCHAR wname[MAX_PATH];
     size_t tmp;
-    mbstowcs_s(&tmp, name, name, strlen(name));
-    std::wcout << "[*] Name: " << name << "\n";
+    mbstowcs_s(&tmp, wname, name, strlen(name));
+    std::wcout << "[*] Name: " << wname << "\n";
 
     HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     if (hSnapshot == INVALID_HANDLE_VALUE) {
@@ -28,7 +28,7 @@ uint64_t get_pid_by_name(const char *name) {
         return 0;
     }
     do {
-        if (_wcsicmp(pe.szExeFile, name) == 0) {
+        if (_wcsicmp(pe.szExeFile, wname) == 0) {
             pid = pe.th32ProcessID;
             break;
         }

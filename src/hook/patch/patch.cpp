@@ -4,10 +4,11 @@
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#else
+#include <sys/mman.h>
 #endif
 
 #include <iostream>
-#include <sys/mman.h>
 #include <capstone/capstone.h>
 
 void *unstub(void *ptr);
@@ -36,7 +37,7 @@ size_t HookPatch::adjust_patch_size(size_t min_size) const {
         h, reinterpret_cast<uint8_t *>(this->target_ptr), min_size * 2,
         reinterpret_cast<uint64_t>(this->target_ptr), 0, &insn);
     auto tmp = insn;
-    std::cout << "[+] cs_disasm done (" << count << ")\n";
+    std::cout << "[+] cs_disasm done (count: " << count << ")\n";
     while (count && insn && res < min_size) {
         res += insn->size;
         insn++;

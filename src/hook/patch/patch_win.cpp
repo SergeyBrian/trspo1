@@ -31,7 +31,7 @@ void HookPatch::patch() {
     memcpy(post_trampoline, common::post_trampoline_shell,
            sizeof(post_trampoline));
 
-    patch_size = adjust_patch_size(sizeof(data));
+    patch_size = adjust_patch_size(sizeof(simple_jmp));
     if (patch_size < sizeof(simple_jmp)) {
         throw std::runtime_error("patch failed: not enough space");
     }

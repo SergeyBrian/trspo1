@@ -11,13 +11,13 @@
 int main() {
     auto mngr = HookManager::Instance();
 
-    hooks::filter::SetHideStrig("test.txt");
+    /*hooks::filter::SetHideStrig("test.txt");*/
+    /*mngr->add_patch("kernel32.dll", "CreateFileA",*/
+    /*                hooks::filter::CreateFileA());*/
     mngr->add_patch("kernel32.dll", "CreateFileA",
-                    hooks::filter::CreateFileA());
-    mngr->add_patch("kernel32.dll", "WriteFile",
-                    hooks::logger::Logger("WriteFile"));
+                    hooks::logger::Logger("CreateFileA"));
 
-    auto file = CreateFile("text.txt", GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
+    auto file = CreateFile("sex.txt", GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
                            FILE_ATTRIBUTE_NORMAL, nullptr);
     if (file == INVALID_HANDLE_VALUE) {
         std::cout << "[!!!] CreateFileA failed (as test case) ("

@@ -40,6 +40,7 @@ if (WIN32)
         src/hook/hooks/logger.cpp 
         src/hook/hooks/common.asm
         src/hook/manager/utils_win.cpp
+        src/hook/hooks/tcp_logger.cpp
     )
     add_executable(test test/test.cpp)
     add_executable(patch_test ${hook_sources} test/patch_test.cpp)

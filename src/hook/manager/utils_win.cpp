@@ -16,6 +16,8 @@ void *get_func_ptr(const std::string &lib_name, const std::string &func_name) {
     if (!target) {
         throw std::runtime_error("GetProcAddress failed");
     }
+
+    return target;
 }
 
 TlsKey alloc_tls() {

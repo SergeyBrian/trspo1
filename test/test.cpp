@@ -20,5 +20,10 @@ int main() {
     CloseHandle(file);
     file = CreateFileW(L"text.txt", GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
                        FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (file == INVALID_HANDLE_VALUE) {
+        std::cout << "!!! Can't open file (" << GetLastError() << ")\n";
+    } else {
+        std::cout << "+++ Can open file\n";
+    }
     return 0;
 }

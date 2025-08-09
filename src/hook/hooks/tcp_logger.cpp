@@ -9,12 +9,11 @@
 
 #include "common/include/proto.h"
 
-namespace {
+namespace hooks::tcp_logger {
 struct LoggerInfo {
     char func_name[MAX_PATH]{};
     io::IStream *s;
 };
-}  // namespace
 
 extern "C" {
 static void logger_call(LoggerInfo *l) {
@@ -24,11 +23,10 @@ static void logger_call(LoggerInfo *l) {
 }
 }
 
-namespace hooks::tcp_logger {
 void *Logger(const char *func_name, io::IStream *s) {
     std::cout << "[*] Constructing Logger('" << func_name << "')\n";
 
-    ::LoggerInfo info{{}, s};
+    LoggerInfo info{{}, s};
 
     std::memcpy(info.func_name, func_name, min(MAX_PATH, strlen(func_name)));
 
