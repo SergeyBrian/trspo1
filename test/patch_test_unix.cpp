@@ -12,16 +12,26 @@ int main() {
 
     hooks::filter::SetHideStrig("test.txt");
 
-    mngr->add_patch("libc.so.6", "fopen", hooks::logger::Logger("fopen"));
+    mngr->add_patch("libc.so.6", "fopen", hooks::filter::fopen());
 
     FILE *f = fopen("test.txt", "w");
 
     if (!f) {
         std::cout << "!!! Can't open file!\n";
+    } else {
+        std::cout << "+++ Can open file!\n";
+        fclose(f);
     }
-    std::cout << "!!! Can open file!\n";
 
-    fclose(f);
+    mngr->remove_patch("fopen");
+
+    f = fopen("test.txt", "w");
+    if (!f) {
+        std::cout << "!!! Can't open file!\n";
+    } else {
+        std::cout << "+++ Can open file!\n";
+        fclose(f);
+    }
 
     return 0;
 }

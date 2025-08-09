@@ -13,6 +13,7 @@ void *CreateFileW();
 void *FindNextFileW();
 void *FindFirstFileW();
 #else
+void *fopen();
 #endif
 }  // namespace hooks::filter
 

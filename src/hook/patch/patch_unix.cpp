@@ -119,7 +119,23 @@ void HookPatch::patch() {
     std::cout << "[+] patch() done\n";
 }
 
-void HookPatch::unpatch() {}
+void HookPatch::unpatch() {
+    if (mprotect(get_page(target_ptr), patch_size,
+                 PROT_READ | PROT_WRITE | PROT_EXEC)) {
+        fprintf(stdout, "[!] mprotect failed! (%d)\n", errno);
+        throw std::runtime_error(strerror(errno));
+    }
+    std::cout << "[+] mprotect done\n";
+
+    memcpy(target_ptr, old_bytes.data(), old_bytes.size());
+    munmap(trampoline, 1024);
+
+    if (mprotect(get_page(target_ptr), patch_size, PROT_READ | PROT_EXEC)) {
+        fprintf(stdout, "[!] mprotect failed! (%d)\n", errno);
+        throw std::runtime_error(strerror(errno));
+    }
+    std::cout << "[+] Hook removed\n";
+}
 
 void *unstub(void *ptr) {
     if (*reinterpret_cast<uint8_t *>(ptr) != 0xF3) {
