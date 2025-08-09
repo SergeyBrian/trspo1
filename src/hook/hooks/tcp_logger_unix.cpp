@@ -7,7 +7,9 @@
 
 #include "common/include/proto.h"
 
+#ifndef _WIN32
 #define MAX_PATH 260
+#endif
 
 namespace hooks::tcp_logger {
 struct TcpLoggerInfo {
