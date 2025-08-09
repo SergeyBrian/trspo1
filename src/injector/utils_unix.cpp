@@ -22,12 +22,6 @@ void soloader() {
     // rbx -> free_ptr
     // rdx -> dlopen_ptr
     asm(
-        // Fix stack alignment
-        "mov %rsp, %r9\n"
-        "and $~0xF, %r9\n"
-        "sub $8, %r9\n"
-        "mov %r9, %rsp\n"
-
         // free
         "push %rbx\n"
         // dlopen
@@ -42,11 +36,20 @@ void soloader() {
         "int $3\n"  // rax -> lib name ptr
 
         // Call to dlopen
-        "pop %r9\n"          // dlopen
+        "pop %r9\n"  // dlopen
+
         "mov %rax, %rdi\n"   // lib name ptr
         "movabs $1, %rsi\n"  // RTLD_LAZY
 
+        // Fix stack alignment
+        "mov %rsp, %r12\n"
+        "and $0xF, %r12\n"
+        /*"sub $8, %r12\n"*/
+        "sub %r12, %rsp\n"
+
         "callq *%r9\n"
+
+        "add %r12, %rsp\n"  // Restore stack
 
         "int $3\n"
 
@@ -305,6 +308,49 @@ void checktargetsig(int pid) {
     }
 }
 
+static int is_event(int st) {
+    return WIFSTOPPED(st) && WSTOPSIG(st) == SIGTRAP &&
+           ((unsigned)st >> 16) != 0;
+}
+static int is_syscall(int st) {
+    return WIFSTOPPED(st) && WSTOPSIG(st) == (SIGTRAP | 0x80);
+}
+
+int wait_for_stop(pid_t tid, int *status_out) {
+    int st;
+    pid_t got = waitpid(tid, &st, __WALL);
+    std::cout << "[+] waitpid received " << st << "\n";
+    if (got < 0) {
+        if (errno == EINTR) return 0;
+        perror("waitpid");
+        return -1;
+    }
+
+    if (WIFEXITED(st) || WIFSIGNALED(st)) return -1;
+
+    if (!WIFSTOPPED(st)) return 0;
+
+    int sig = WSTOPSIG(st);
+
+    if (is_syscall(st)) {
+        if (status_out) *status_out = st;
+        return 0;
+    }
+
+    if (is_event(st)) {
+        if (status_out) *status_out = st;
+        return 0;
+    }
+
+    siginfo_t si;
+    if (ptrace(PTRACE_GETSIGINFO, tid, 0, &si) == 0) {
+        if (status_out) *status_out = st;
+        return si.si_signo;
+    } else {
+        return 0;
+    }
+}
+
 bool ptrace_cont(int64_t pid) {
     auto sleeptime = new timespec;
 
@@ -316,7 +362,13 @@ bool ptrace_cont(int64_t pid) {
         return false;
     }
 
-    nanosleep(sleeptime, NULL);
+    while (true) {
+        nanosleep(sleeptime, NULL);
+        if (wait_for_stop(pid, nullptr)) {
+            std::cout << "[*] stopping\n";
+            break;
+        }
+    }
 
     checktargetsig(pid);
 
@@ -395,8 +447,6 @@ void *inject(int64_t pid, const std::string &lib) {
         return nullptr;
     }
 
-    waitpid(pid, nullptr, 0);
-
     regs = get_regs(pid);
 
     std::cout << "[*] break after malloc (rip: 0x" << std::hex << regs.rip
@@ -421,8 +471,6 @@ void *inject(int64_t pid, const std::string &lib) {
     if (!ptrace_cont(pid)) {
         return nullptr;
     }
-
-    waitpid(pid, nullptr, 0);
 
     regs = get_regs(pid);
     std::cout << "[*] break after dlopen (rip: 0x" << std::hex << regs.rip

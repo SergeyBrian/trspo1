@@ -1,5 +1,4 @@
 #include "manager.h"
-#include <stdexcept>
 
 #include "utils.h"
 
@@ -7,7 +6,8 @@ void HookManager::add_patch(const std::string &lib_name,
                             const std::string &func_name, void *hook_func) {
     void *target = get_func_ptr(lib_name, func_name);
     if (!target) {
-        throw std::runtime_error("Function not found");
+        std::cout << "[!] " << func_name << " not found\n";
+        return;
     }
 
     if (patches.contains(func_name)) {

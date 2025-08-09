@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <cstring>
+#include <thread>
 
 #include "common/include/tcp.h"
 #include "common/include/proto.h"
@@ -15,31 +16,7 @@ static const char *dll_name = "libhook.so";
 #endif
 
 namespace injector {
-bool inject(const Config &config) {
-    std::string dll_full_path = get_full_path(dll_name);
-    int64_t pid = config.pid;
-
-    if (dll_full_path.empty()) {
-        std::cout << "[!] can't resolve lib path\n";
-        return 1;
-    }
-
-    if (!config.pid) {
-        if (!strlen(config.process_name)) {
-            std::cout << "[!] Please specify pid or process name\n";
-            return 1;
-        }
-        pid = get_pid_by_name(config.process_name);
-        if (!pid) {
-            std::cout << "[!] Process not found\n";
-            return 1;
-        }
-    }
-
-    std::cout << "[*] Pid: " << pid << "\n";
-
-    auto thread = ::inject(pid, dll_full_path);
-
+bool server(const Config &config) {
     auto listener = net::TcpListener::bind("127.0.0.1", "6969");
     if (!listener) {
         std::cout << "[!] Failed to bind to tcp socket\n";
@@ -79,8 +56,41 @@ bool inject(const Config &config) {
 
     stream->close();
     listener->close();
+    return 0;
+}
+
+bool inject(const Config &config) {
+    std::string dll_full_path = get_full_path(dll_name);
+    int64_t pid = config.pid;
+
+    if (dll_full_path.empty()) {
+        std::cout << "[!] can't resolve lib path\n";
+        return 1;
+    }
+
+    if (!config.pid) {
+        if (!strlen(config.process_name)) {
+            std::cout << "[!] Please specify pid or process name\n";
+            return 1;
+        }
+        pid = get_pid_by_name(config.process_name);
+        if (!pid) {
+            std::cout << "[!] Process not found\n";
+            return 1;
+        }
+    }
+
+    std::cout << "[*] Pid: " << pid << "\n";
+
+    std::thread t([&] {
+        bool ok = server(config);
+        std::cout << "server finished, ok=" << std::boolalpha << ok << "\n";
+    });
+
+    auto thread = ::inject(pid, dll_full_path);
 
     ::wait(thread);
+    t.join();
 
     return 0;
 }

@@ -3,6 +3,8 @@
 #include <netdb.h>
 #include <unistd.h>
 
+#include <cstring>
+#include <iostream>
 #include <string>
 #include <string_view>
 #include <memory>
@@ -47,25 +49,39 @@ std::unique_ptr<TcpStream> TcpStream::connect(std::string_view host,
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
     addrinfo *res = nullptr;
+
     if (::getaddrinfo(std::string(host).c_str(), std::string(port).c_str(),
-                      &hints, &res) != 0)
+                      &hints, &res) != 0) {
+        std::cout << "[!] getaddrinfo failed for " << host << ":" << port
+                  << "\n";
         return nullptr;
+    }
 
     int s = -1;
     for (auto *p = res; p; p = p->ai_next) {
         s = ::socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-        if (s == -1) continue;
+        if (s == -1) {
+            std::cout << "[!] socket() failed: " << strerror(errno) << "\n";
+            continue;
+        }
         if (::connect(s, p->ai_addr, int(p->ai_addrlen)) == 0) {
             break;
         }
+
+        std::cout << "[!] connect() failed: " << strerror(errno) << "\n";
         ::close(s);
         s = -1;
     }
     freeaddrinfo(res);
-    if (s == -1) return nullptr;
+
+    if (s == -1) {
+        std::cout << "[!] could not connect to " << host << ":" << port << "\n";
+        return nullptr;
+    }
 
     auto tp = std::make_unique<TcpStream>();
     tp->pimpl_ = new Impl{s};
+    std::cout << "[+] connected to " << host << ":" << port << "\n";
     return tp;
 }
 

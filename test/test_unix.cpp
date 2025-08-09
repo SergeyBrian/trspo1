@@ -1,9 +1,11 @@
 #include <dlfcn.h>
+#include <unistd.h>
 #include <fstream>
 #include <iostream>
 
 int main() {
     std::cout << "test\n";
+    std::cout << getpid() << "\n";
     std::ofstream file{};
     file.open("test.txt");
 
@@ -13,8 +15,10 @@ int main() {
     std::cout << "dlopen_ptr: " << reinterpret_cast<uint64_t>(&dlopen) << "\n";
     std::cout << std::dec;
 
-    getchar();
     file.close();
+
+    getchar();
+
     file.open("test.txt");
     if (!file.is_open()) {
         std::cout << "!!! Can't open file\n";

@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <iostream>
 #include <string>
+#include <fstream>
 
 #include "hook/manager/manager.h"
 #include "hook/hooks/filter.h"
@@ -21,6 +22,14 @@ int main() {
     } else {
         std::cout << "+++ Can open file!\n";
         fclose(f);
+    }
+
+    std::ifstream file("test.txt");
+    if (file.is_open()) {
+        std::cout << "+++ ifstream open worked\n";
+        file.close();
+    } else {
+        std::cout << "!!! ifstream open dont't worked\n";
     }
 
     mngr->remove_patch("fopen");

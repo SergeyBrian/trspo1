@@ -14,6 +14,13 @@ void *FindNextFileW();
 void *FindFirstFileW();
 #else
 void *fopen();
+void *fopen64();
+void *open();
+void *open64();
+void *openat();
+void *openat64();
+void *creat();
+void *creat64();
 #endif
 }  // namespace hooks::filter
 
