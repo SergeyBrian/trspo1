@@ -23,40 +23,52 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(capstone)
 
 
-if (WIN32)
 set(hook_sources
     src/hook/manager/manager.cpp
-    src/hook/patch/patch.cpp
-    src/hook/hooks/filter.cpp
-    src/hook/hooks/logger.cpp 
+    src/hook/setup.cpp
 )
-add_executable(test test/test.cpp)
-add_executable(patch_test ${hook_sources} test/patch_test.cpp)
-add_library(hook SHARED ${hook_sources} src/hook/hooks/tcp_logger.cpp src/hook/dllmain.cpp)
-add_library(net_tcp
-    src/common/internal/tcp_win.cpp
-)
-set(injector_sources 
-    src/injector/utils_win.cpp
+
+set(injector_sources
     src/injector/injector.cpp
 )
 
+if (WIN32)
+    list(APPEND hook_sources
+        src/hook/patch/patch_win.cpp
+        src/hook/patch/patch.cpp
+        src/hook/hooks/filter.cpp
+        src/hook/hooks/logger.cpp 
+        src/hook/hooks/common.asm
+        src/hook/manager/utils_win.cpp
+    )
+    add_executable(test test/test.cpp)
+    add_executable(patch_test ${hook_sources} test/patch_test.cpp)
+    add_library(hook SHARED ${hook_sources} src/hook/hooks/tcp_logger.cpp src/hook/dllmain.cpp)
+    add_library(net_tcp
+        src/common/internal/tcp_win.cpp
+    )
+    list(APPEND injector_sources 
+        src/injector/utils_win.cpp
+    )
 else()
-set(hook_sources
-    src/hook/manager/manager_unix.cpp
-    src/hook/patch/patch_unix.cpp
-    src/hook/hooks/filter_unix.cpp
-)
-add_executable(test test/test_unix.cpp)
-add_executable(patch_test ${hook_sources} test/patch_test_unix.cpp)
-add_library(hook SHARED ${hook_sources} src/hook/hooks/tcp_logger_unix.cpp src/hook/shared_init.cpp)
-add_library(net_tcp
-    src/common/internal/tcp_unix.cpp
-)
-set(injector_sources 
-    src/injector/utils_unix.cpp
-    src/injector/injector.cpp
-)
+    list(APPEND hook_sources
+        src/hook/patch/patch.cpp
+        src/hook/patch/patch_unix.cpp
+        src/hook/hooks/filter_unix.cpp
+        src/hook/manager/utils_unix.cpp
+        src/hook/hooks/logger_unix.cpp
+        src/hook/hooks/tcp_logger_unix.cpp
+        src/hook/hooks/common.s
+    )
+    add_executable(test test/test_unix.cpp)
+    add_executable(patch_test ${hook_sources} test/patch_test_unix.cpp)
+    add_library(hook SHARED ${hook_sources} src/hook/hooks/tcp_logger_unix.cpp src/hook/shared_init.cpp)
+    add_library(net_tcp
+        src/common/internal/tcp_unix.cpp
+    )
+    list(APPEND injector_sources 
+        src/injector/utils_unix.cpp
+    )
 
 endif()
 
@@ -64,14 +76,11 @@ add_executable(${CMAKE_PROJECT_NAME} ${injector_sources} src/main.cpp)
 
 if (WIN32)
     target_link_libraries(net_tcp PUBLIC ws2_32)
-    target_sources(hook PRIVATE src/hook/hooks/common.asm)
-    target_sources(patch_test PRIVATE src/hook/hooks/common.asm)
 endif()
 
 target_link_libraries(monitor PRIVATE capstone net_tcp)
 target_link_libraries(hook PRIVATE capstone net_tcp)
-
-target_link_libraries(patch_test PRIVATE capstone)
+target_link_libraries(patch_test PRIVATE capstone net_tcp)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 

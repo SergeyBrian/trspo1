@@ -3,20 +3,12 @@
 
 #include "hook/patch/patch.h"
 
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-using TlsKey = DWORD;
-#else
-#include <pthread.h>
-
-using TlsKey = pthread_key_t;
-#endif
-
 #include <unordered_map>
 #include <string>
 #include <memory>
 #include <iostream>
+
+#include "utils.h"
 
 class HookManager {
 public:
@@ -32,7 +24,7 @@ public:
             return patches.at(func_name)->get_trampoline<T>();
         }
 
-        std::cout << "[!] Not found (" << func_name << ")\n";
+        std::cout << "[!] Trampoline not found (" << func_name << ")\n";
 
         patches[func_name] = std::make_unique<HookPatch>();
 

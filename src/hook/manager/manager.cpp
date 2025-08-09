@@ -1,20 +1,13 @@
 #include "manager.h"
 #include <stdexcept>
 
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+#include "utils.h"
 
 void HookManager::add_patch(const std::string &lib_name,
                             const std::string &func_name, void *hook_func) {
-    HMODULE h = LoadLibraryA(lib_name.c_str());
-    if (!h) {
-        throw std::runtime_error("LoadLibraryA failed");
-    }
-
-    void *target =
-        reinterpret_cast<void *>(GetProcAddress(h, func_name.c_str()));
+    void *target = get_func_ptr(lib_name, func_name);
     if (!target) {
-        throw std::runtime_error("GetProcAddress failed");
+        throw std::runtime_error("Function not found");
     }
 
     if (patches.contains(func_name)) {
@@ -35,7 +28,4 @@ HookManager *HookManager::Instance() {
     return &instance;
 }
 
-HookManager::HookManager() {
-    tls_idx = TlsAlloc();
-    TlsSetValue(tls_idx, 0);
-}
+HookManager::HookManager() { tls_idx = alloc_tls(); }
